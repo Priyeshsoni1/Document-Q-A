@@ -6,7 +6,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     """Application configuration loaded from environment variables."""
 
-    app_name: str = "Document Q&A"
+    app_name: str = "Production RAG Document Q&A"
     app_env: str = "development"
     debug: bool = True
 
