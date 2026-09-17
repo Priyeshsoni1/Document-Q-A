@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     pinecone_index_name: str = "production-rag-index"
 
     top_k: int = 5
+    similarity_threshold: float = 0.60
     chunk_size: int = 1000
     chunk_overlap: int = 200
 
