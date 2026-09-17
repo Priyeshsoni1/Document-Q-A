@@ -1,17 +1,25 @@
 from typing import Any, Dict, List
 
-from langchain_core.messages import HumanMessage, SystemMessage
+from langchain_core.messages import (
+    AIMessage,
+    HumanMessage,
+    SystemMessage,
+)
 from langchain_openai import ChatOpenAI
 
 from app.core.config import get_settings
+from app.generation.conversation import ConversationManager
 from app.generation.prompts import RAG_SYSTEM_PROMPT
 from app.retrieval.retriever import Retriever
 
 
 class RAGService:
-    """RAG service for grounded document question answering."""
+    """RAG service with conversational history."""
 
-    def __init__(self):
+    def __init__(
+        self,
+        conversation_manager: ConversationManager | None = None,
+    ):
         settings = get_settings()
 
         if not settings.openai_api_key:
@@ -28,17 +36,21 @@ class RAGService:
             api_key=settings.openai_api_key,
         )
 
+        self.conversation_manager = (
+            conversation_manager
+            or ConversationManager()
+        )
+
     def answer(
         self,
         question: str,
+        session_id: str = "default",
         top_k: int | None = None,
         document: str | None = None,
         source: str | None = None,
         page: int | None = None,
     ) -> Dict[str, Any]:
-        """
-        Generate a grounded answer using retrieved documents.
-        """
+        """Generate a grounded answer using conversation history."""
 
         if not question or not question.strip():
             raise ValueError(
@@ -48,7 +60,15 @@ class RAGService:
         question = question.strip()
 
         # -----------------------------------------------------
-        # 1. Retrieve relevant chunks
+        # 1. Get previous conversation
+        # -----------------------------------------------------
+
+        history = self.conversation_manager.get_history(
+            session_id
+        )
+
+        # -----------------------------------------------------
+        # 2. Retrieve relevant documents
         # -----------------------------------------------------
 
         results = self.retriever.search(
@@ -60,28 +80,46 @@ class RAGService:
         )
 
         # -----------------------------------------------------
-        # 2. Handle no relevant documents
+        # 3. Handle no relevant documents
         # -----------------------------------------------------
 
         if not results:
+
+            answer = (
+                "I couldn't find this information "
+                "in the provided documents."
+            )
+
+            self.conversation_manager.add_message(
+                session_id=session_id,
+                role="user",
+                content=question,
+            )
+
+            self.conversation_manager.add_message(
+                session_id=session_id,
+                role="assistant",
+                content=answer,
+            )
+
             return {
-                "answer": (
-                    "I couldn't find this information "
-                    "in the provided documents."
-                ),
+                "answer": answer,
                 "found": False,
                 "citations": [],
                 "retrieved_chunks": 0,
+                "session_id": session_id,
             }
 
         # -----------------------------------------------------
-        # 3. Build context
+        # 4. Build document context
         # -----------------------------------------------------
 
-        context = self._build_context(results)
+        context = self._build_context(
+            results
+        )
 
         # -----------------------------------------------------
-        # 4. Create prompt
+        # 5. Build system prompt
         # -----------------------------------------------------
 
         system_prompt = RAG_SYSTEM_PROMPT.format(
@@ -91,14 +129,43 @@ class RAGService:
         messages = [
             SystemMessage(
                 content=system_prompt
-            ),
-            HumanMessage(
-                content=question
-            ),
+            )
         ]
 
         # -----------------------------------------------------
-        # 5. Generate answer
+        # 6. Add previous conversation
+        # -----------------------------------------------------
+
+        for message in history:
+
+            if message["role"] == "user":
+
+                messages.append(
+                    HumanMessage(
+                        content=message["content"]
+                    )
+                )
+
+            elif message["role"] == "assistant":
+
+                messages.append(
+                    AIMessage(
+                        content=message["content"]
+                    )
+                )
+
+        # -----------------------------------------------------
+        # 7. Add current question
+        # -----------------------------------------------------
+
+        messages.append(
+            HumanMessage(
+                content=question
+            )
+        )
+
+        # -----------------------------------------------------
+        # 8. Generate answer
         # -----------------------------------------------------
 
         response = self.llm.invoke(messages)
@@ -106,16 +173,35 @@ class RAGService:
         answer = response.content
 
         # -----------------------------------------------------
-        # 6. Generate citations from retrieved metadata
+        # 9. Save conversation
         # -----------------------------------------------------
 
-        citations = self._build_citations(results)
+        self.conversation_manager.add_message(
+            session_id=session_id,
+            role="user",
+            content=question,
+        )
+
+        self.conversation_manager.add_message(
+            session_id=session_id,
+            role="assistant",
+            content=answer,
+        )
+
+        # -----------------------------------------------------
+        # 10. Build citations
+        # -----------------------------------------------------
+
+        citations = self._build_citations(
+            results
+        )
 
         return {
             "answer": answer,
             "found": True,
             "citations": citations,
             "retrieved_chunks": len(results),
+            "session_id": session_id,
         }
 
     @staticmethod
@@ -130,6 +216,7 @@ class RAGService:
             results,
             start=1,
         ):
+
             metadata = result["metadata"]
 
             source = metadata.get(
@@ -159,19 +246,22 @@ Content:
 """
             )
 
-        return "\n".join(context_parts)
+        return "\n".join(
+            context_parts
+        )
 
     @staticmethod
     def _build_citations(
         results: List[Dict[str, Any]]
     ) -> List[Dict[str, Any]]:
-        """Create structured citations from retrieved metadata."""
+        """Create structured citations."""
 
         citations = []
 
         seen = set()
 
         for result in results:
+
             metadata = result["metadata"]
 
             source = metadata.get(
