@@ -1,0 +1,82 @@
+[
+  {
+    "question": "What is Priyesh Soni's professional role and area of specialization?",
+    "reference": "Priyesh Soni is an AI / LLM Engineer with 3+ years of production software engineering experience, specializing in LangChain, LangGraph, RAG pipelines, agentic workflows, and LLM evaluation."
+  },
+  {
+    "question": "What AI and LLM technologies are listed in Priyesh Soni's technical skills?",
+    "reference": "The AI / LLM stack includes Python 3.11, LangChain, LangGraph, LlamaIndex, OpenAI API, Anthropic Claude API, RAG pipelines, Pinecone, Chroma, pgvector, prompt engineering, Hugging Face (PEFT and Transformers), RAGAS, and LangSmith."
+  },
+  {
+    "question": "What was Priyesh Soni's role at TurnKey Solutions and when did he work there?",
+    "reference": "He worked as an AI / Software Development Engineer at TurnKey Solutions from September 2025 to the present."
+  },
+  {
+    "question": "What did Priyesh build for the Rainier workflow platform at TurnKey Solutions?",
+    "reference": "He developed an AI-assisted failure analysis module for the Rainier workflow platform using Python, LangChain, and RAG. It processes execution logs and historical results to generate contextual root-cause insights."
+  },
+  {
+    "question": "By what percentage did the AI-assisted failure analysis module reduce manual investigation effort?",
+    "reference": "The AI-assisted failure analysis module reduced manual investigation effort by 30%."
+  },
+  {
+    "question": "What role did Python and FastAPI play in Priyesh's TurnKey Solutions work?",
+    "reference": "Priyesh built Python/FastAPI services for data extraction, preprocessing, validation, and AI-powered analysis, integrating structured workflow data from Rainier with downstream Conductor services."
+  },
+  {
+    "question": "How did Priyesh improve the consistency and reliability of AI-generated root-cause analysis?",
+    "reference": "He implemented LLM-based structured processing using reusable prompt templates and schema-based outputs, improving the consistency and reliability of AI-generated root-cause analysis across workflow scenarios."
+  },
+  {
+    "question": "What backend improvements did Priyesh make at TurnKey Solutions, and what was the reported impact?",
+    "reference": "He improved backend workflow reliability through API abstractions, validation, error handling, logging, and reusable service components, reducing integration effort for new workflow modules by approximately 25%."
+  },
+  {
+    "question": "What was Priyesh Soni's role at Emeis Technologies and during what period?",
+    "reference": "He worked as an Associate Software Consultant at Emeis Technologies from February 2023 to August 2025."
+  },
+  {
+    "question": "What AI-powered chatbot did Priyesh build for Formula2ship?",
+    "reference": "He built an AI-powered customer-support chatbot using GPT-3.5 to handle real-time shipment status queries in natural language, helping deflect repetitive tickets and reduce average resolution time."
+  },
+  {
+    "question": "What documents did Priyesh's GenAI document-generation module produce for Formula2ship?",
+    "reference": "The module used the OpenAI API to automatically produce shipping manifests, customs declarations, and delivery notifications from structured order data."
+  },
+  {
+    "question": "How did Priyesh use OpenAI function-calling in Formula2ship?",
+    "reference": "He implemented NLP-based address parsing via OpenAI function-calling to validate and auto-correct malformed delivery addresses at import time, reducing failed-delivery incidents."
+  },
+  {
+    "question": "What healthcare GenAI system did Priyesh build at CheckNoutWeb?",
+    "reference": "He built a GenAI report-generation service using GPT-4 to auto-draft structured patient discharge summaries and prescription notes from unstructured doctor inputs."
+  },
+  {
+    "question": "What did the AI-powered patient intake assistant do at CheckNoutWeb?",
+    "reference": "It collected symptoms conversationally, pre-filled appointment forms, and flagged urgent cases for priority scheduling, reducing manual data-entry effort by 30%."
+  },
+  {
+    "question": "What is Aegis, and what orchestration technology does it use?",
+    "reference": "Aegis is an AI Due-Diligence & Decision Intelligence Platform. It uses a stateful LangGraph agent to dynamically decompose complex queries and orchestrate web search, RAG retrieval, analysis, and validation tools through conditional multi-step workflows."
+  },
+  {
+    "question": "What database technology is used in the Aegis hybrid research pipeline?",
+    "reference": "The Aegis hybrid research pipeline uses PostgreSQL with pgvector to combine private knowledge-base evidence with external sources."
+  },
+  {
+    "question": "What reliability mechanisms were implemented in the Aegis agent?",
+    "reference": "Aegis includes bounded retry and recovery loops, exponential backoff, fallback tools, evidence-quality validation, and execution limits."
+  },
+  {
+    "question": "What production and observability technologies were used in Aegis?",
+    "reference": "Aegis uses FastAPI serving, Docker containerisation, and LangSmith tracing for production-oriented observability. It benchmarks task success, evidence quality, latency, token usage, and cost."
+  },
+  {
+    "question": "What are the main features of Priyesh's Document Q&A RAG System?",
+    "reference": "The Document Q&A RAG System uses LangChain, Pinecone, and OpenAI embeddings and supports PDF, DOCX, and web sources. It includes semantic chunking, re-ranking, and source citation for every answer, with RAGAS-based quality measurement."
+  },
+  {
+    "question": "Which RAGAS metrics are explicitly mentioned in Priyesh's professional summary and projects?",
+    "reference": "The Document Q&A project uses RAGAS for automated quality measurement, and the resume specifically describes metrics including faithfulness, answer relevancy, and context recall."
+  }
+]
