@@ -65,9 +65,13 @@ async def chat(request: ChatRequest):
         ) from exc
 
     except Exception as exc:
+        import traceback
+
+        traceback.print_exc()
+
         raise HTTPException(
             status_code=500,
-            detail="Failed to process the question.",
+            detail=f"Failed to process the question: {str(exc)}",
         ) from exc
 
 

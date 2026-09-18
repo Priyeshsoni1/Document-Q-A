@@ -1,3 +1,4 @@
+import time
 from typing import Any, Dict, List
 
 from langchain_core.messages import (
@@ -10,15 +11,20 @@ from langchain_openai import ChatOpenAI
 from app.core.config import get_settings
 from app.generation.conversation import ConversationManager
 from app.generation.prompts import RAG_SYSTEM_PROMPT
+from app.monitoring.logger import logger
+from app.monitoring.metrics import (
+    calculate_cost,
+    extract_usage,
+)
 from app.retrieval.retriever import Retriever
 
 
 class RAGService:
-    """RAG service with conversational history."""
+    """RAG service with conversation and observability."""
 
     def __init__(
         self,
-        conversation_manager: ConversationManager | None = None,
+        conversation_manager=None,
     ):
         settings = get_settings()
 
@@ -27,11 +33,13 @@ class RAGService:
                 "OPENAI_API_KEY is not configured."
             )
 
+        self.settings = settings
+
         self.retriever = Retriever()
 
         self.llm = ChatOpenAI(
-            model="inclusionai/ling-3.0-flash-vl:free",
             base_url="https://openrouter.ai/api/v1",
+            model=settings.llm_model,
             temperature=0,
             api_key=settings.openai_api_key,
         )
@@ -50,7 +58,6 @@ class RAGService:
         source: str | None = None,
         page: int | None = None,
     ) -> Dict[str, Any]:
-        """Generate a grounded answer using conversation history."""
 
         if not question or not question.strip():
             raise ValueError(
@@ -59,17 +66,13 @@ class RAGService:
 
         question = question.strip()
 
-        # -----------------------------------------------------
-        # 1. Get previous conversation
-        # -----------------------------------------------------
+        total_start = time.perf_counter()
 
-        history = self.conversation_manager.get_history(
-            session_id
-        )
+        # -------------------------------------------------
+        # Retrieval
+        # -------------------------------------------------
 
-        # -----------------------------------------------------
-        # 2. Retrieve relevant documents
-        # -----------------------------------------------------
+        retrieval_start = time.perf_counter()
 
         results = self.retriever.search(
             query=question,
@@ -79,9 +82,14 @@ class RAGService:
             page=page,
         )
 
-        # -----------------------------------------------------
-        # 3. Handle no relevant documents
-        # -----------------------------------------------------
+        retrieval_latency_ms = (
+            time.perf_counter()
+            - retrieval_start
+        ) * 1000
+
+        # -------------------------------------------------
+        # No results
+        # -------------------------------------------------
 
         if not results:
 
@@ -102,25 +110,50 @@ class RAGService:
                 content=answer,
             )
 
+            total_latency_ms = (
+                time.perf_counter()
+                - total_start
+            ) * 1000
+
+            logger.info(
+                "rag_no_context session_id=%s "
+                "retrieval_latency_ms=%.2f "
+                "total_latency_ms=%.2f",
+                session_id,
+                retrieval_latency_ms,
+                total_latency_ms,
+            )
+
             return {
                 "answer": answer,
                 "found": False,
                 "citations": [],
                 "retrieved_chunks": 0,
                 "session_id": session_id,
+                "metrics": {
+                    "retrieval_latency_ms": round(
+                        retrieval_latency_ms,
+                        2,
+                    ),
+                    "llm_latency_ms": 0.0,
+                    "total_latency_ms": round(
+                        total_latency_ms,
+                        2,
+                    ),
+                    "input_tokens": 0,
+                    "output_tokens": 0,
+                    "total_tokens": 0,
+                    "estimated_cost_usd": 0.0,
+                },
             }
 
-        # -----------------------------------------------------
-        # 4. Build document context
-        # -----------------------------------------------------
+        # -------------------------------------------------
+        # Build context
+        # -------------------------------------------------
 
         context = self._build_context(
             results
         )
-
-        # -----------------------------------------------------
-        # 5. Build system prompt
-        # -----------------------------------------------------
 
         system_prompt = RAG_SYSTEM_PROMPT.format(
             context=context
@@ -132,9 +165,15 @@ class RAGService:
             )
         ]
 
-        # -----------------------------------------------------
-        # 6. Add previous conversation
-        # -----------------------------------------------------
+        # -------------------------------------------------
+        # Conversation history
+        # -------------------------------------------------
+
+        history = (
+            self.conversation_manager.get_history(
+                session_id
+            )
+        )
 
         for message in history:
 
@@ -154,27 +193,50 @@ class RAGService:
                     )
                 )
 
-        # -----------------------------------------------------
-        # 7. Add current question
-        # -----------------------------------------------------
-
         messages.append(
             HumanMessage(
                 content=question
             )
         )
 
-        # -----------------------------------------------------
-        # 8. Generate answer
-        # -----------------------------------------------------
+        # -------------------------------------------------
+        # LLM
+        # -------------------------------------------------
 
-        response = self.llm.invoke(messages)
+        llm_start = time.perf_counter()
+
+        response = self.llm.invoke(
+            messages
+        )
+
+        llm_latency_ms = (
+            time.perf_counter()
+            - llm_start
+        ) * 1000
 
         answer = response.content
 
-        # -----------------------------------------------------
-        # 9. Save conversation
-        # -----------------------------------------------------
+        # -------------------------------------------------
+        # Token usage
+        # -------------------------------------------------
+
+        usage = extract_usage(
+            response
+        )
+
+        estimated_cost = calculate_cost(
+            model=self.settings.llm_model,
+            input_tokens=usage[
+                "input_tokens"
+            ],
+            output_tokens=usage[
+                "output_tokens"
+            ],
+        )
+
+        # -------------------------------------------------
+        # Save conversation
+        # -------------------------------------------------
 
         self.conversation_manager.add_message(
             session_id=session_id,
@@ -188,12 +250,42 @@ class RAGService:
             content=answer,
         )
 
-        # -----------------------------------------------------
-        # 10. Build citations
-        # -----------------------------------------------------
+        # -------------------------------------------------
+        # Citations
+        # -------------------------------------------------
 
         citations = self._build_citations(
             results
+        )
+
+        total_latency_ms = (
+            time.perf_counter()
+            - total_start
+        ) * 1000
+
+        # -------------------------------------------------
+        # Logging
+        # -------------------------------------------------
+
+        logger.info(
+            "rag_request session_id=%s "
+            "retrieved_chunks=%s "
+            "retrieval_latency_ms=%.2f "
+            "llm_latency_ms=%.2f "
+            "total_latency_ms=%.2f "
+            "input_tokens=%s "
+            "output_tokens=%s "
+            "total_tokens=%s "
+            "estimated_cost_usd=%.8f",
+            session_id,
+            len(results),
+            retrieval_latency_ms,
+            llm_latency_ms,
+            total_latency_ms,
+            usage["input_tokens"],
+            usage["output_tokens"],
+            usage["total_tokens"],
+            estimated_cost,
         )
 
         return {
@@ -202,13 +294,36 @@ class RAGService:
             "citations": citations,
             "retrieved_chunks": len(results),
             "session_id": session_id,
+            "metrics": {
+                "retrieval_latency_ms": round(
+                    retrieval_latency_ms,
+                    2,
+                ),
+                "llm_latency_ms": round(
+                    llm_latency_ms,
+                    2,
+                ),
+                "total_latency_ms": round(
+                    total_latency_ms,
+                    2,
+                ),
+                "input_tokens": usage[
+                    "input_tokens"
+                ],
+                "output_tokens": usage[
+                    "output_tokens"
+                ],
+                "total_tokens": usage[
+                    "total_tokens"
+                ],
+                "estimated_cost_usd": estimated_cost,
+            },
         }
 
     @staticmethod
     def _build_context(
         results: List[Dict[str, Any]]
     ) -> str:
-        """Convert retrieved chunks into LLM context."""
 
         context_parts = []
 
@@ -219,27 +334,12 @@ class RAGService:
 
             metadata = result["metadata"]
 
-            source = metadata.get(
-                "source",
-                "Unknown",
-            )
-
-            page = metadata.get(
-                "page",
-                "Unknown",
-            )
-
-            document = metadata.get(
-                "document",
-                "Unknown",
-            )
-
             context_parts.append(
                 f"""
 --- CONTEXT {index} ---
-Document: {document}
-Source: {source}
-Page: {page}
+Document: {metadata.get("document", "Unknown")}
+Source: {metadata.get("source", "Unknown")}
+Page: {metadata.get("page", "Unknown")}
 
 Content:
 {result["text"]}
@@ -254,7 +354,6 @@ Content:
     def _build_citations(
         results: List[Dict[str, Any]]
     ) -> List[Dict[str, Any]]:
-        """Create structured citations."""
 
         citations = []
 
@@ -274,15 +373,15 @@ Content:
                 "Unknown",
             )
 
-            citation_key = (
+            key = (
                 source,
                 page,
             )
 
-            if citation_key in seen:
+            if key in seen:
                 continue
 
-            seen.add(citation_key)
+            seen.add(key)
 
             citations.append(
                 {

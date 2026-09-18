@@ -48,6 +48,7 @@ class ChatResponse(BaseModel):
     citations: List[Citation]
     retrieved_chunks: int
     session_id: str
+    metrics: Metrics
 
 
 class SearchRequest(BaseModel):
@@ -92,3 +93,14 @@ class HealthResponse(BaseModel):
 
 class MessageResponse(BaseModel):
     message: str
+
+class Metrics(BaseModel):
+    retrieval_latency_ms: float
+    llm_latency_ms: float
+    total_latency_ms: float
+
+    input_tokens: int
+    output_tokens: int
+    total_tokens: int
+
+    estimated_cost_usd: float

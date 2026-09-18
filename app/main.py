@@ -3,6 +3,9 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routes import router
 from app.core.config import get_settings
+from app.monitoring.middleware import (
+    request_logging_middleware,
+)
 
 
 settings = get_settings()
@@ -13,15 +16,20 @@ app = FastAPI(
     version="1.0.0",
     description=(
         "Production-grade RAG Document Q&A API "
-        "with semantic retrieval, citations, "
-        "metadata filtering, and conversation history."
+        "with retrieval, citations, evaluation, "
+        "and observability."
     ),
 )
 
 
 # ---------------------------------------------------------
-# CORS
+# Middleware
 # ---------------------------------------------------------
+
+app.middleware(
+    "http"
+)(request_logging_middleware)
+
 
 app.add_middleware(
     CORSMiddleware,
@@ -41,7 +49,6 @@ app.include_router(router)
 
 @app.get("/")
 async def root():
-    """Basic API information."""
 
     return {
         "application": settings.app_name,

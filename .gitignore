@@ -28,7 +28,9 @@ htmlcov/
 # Logs
 *.log
 logs/
-
+# Application logs
+logs/*
+!logs/.gitkeep
 # Local data
 data/documents/*
 !data/documents/.gitkeep
