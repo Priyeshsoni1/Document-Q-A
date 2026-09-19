@@ -10,6 +10,18 @@ class Citation(BaseModel):
     score: float
 
 
+class Metrics(BaseModel):
+    retrieval_latency_ms: float
+    llm_latency_ms: float
+    total_latency_ms: float
+
+    input_tokens: int
+    output_tokens: int
+    total_tokens: int
+
+    estimated_cost_usd: float
+
+
 class ChatRequest(BaseModel):
     question: str = Field(
         ...,
@@ -93,14 +105,3 @@ class HealthResponse(BaseModel):
 
 class MessageResponse(BaseModel):
     message: str
-
-class Metrics(BaseModel):
-    retrieval_latency_ms: float
-    llm_latency_ms: float
-    total_latency_ms: float
-
-    input_tokens: int
-    output_tokens: int
-    total_tokens: int
-
-    estimated_cost_usd: float

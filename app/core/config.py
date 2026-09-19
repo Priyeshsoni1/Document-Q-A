@@ -19,7 +19,7 @@ class Settings(BaseSettings):
     chunk_size: int = 1000
     chunk_overlap: int = 200
 
-    llm_model: str = "gpt-4.1-mini"
+    llm_model: str = "deepseek/deepseek-v4-flash-0731:free"
     embedding_model: str = "text-embedding-3-small"
 
     model_config = SettingsConfigDict(
