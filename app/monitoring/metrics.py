@@ -16,6 +16,10 @@ MODEL_PRICING = {
         "input": 0.60,
         "output": 1.20,
     },
+    "google/gemma-4-31b-it:free": {
+        "input": 0.60,
+        "output": 1.20,
+    },
 }
 
 
