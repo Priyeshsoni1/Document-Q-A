@@ -12,7 +12,7 @@ MODEL_PRICING = {
         "input": 0.40,
         "output": 1.60,
     },
-        "nex-agi/nex-n2.5-mini:free": {
+    "nvidia/nemotron-3-super-120b-a12b:free": {
         "input": 0.60,
         "output": 1.20,
     },
