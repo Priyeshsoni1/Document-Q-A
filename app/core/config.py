@@ -19,7 +19,7 @@ class Settings(BaseSettings):
     chunk_size: int = 1000
     chunk_overlap: int = 200
 
-    llm_model: str = "openrouter/free"
+    llm_model: str = "nvidia/nemotron-3-super-120b-a12b:free"
     embedding_model: str = "text-embedding-3-small"
 
     model_config = SettingsConfigDict(
