@@ -8,6 +8,10 @@ MODEL_PRICING = {
         "input": 0.40,
         "output": 1.60,
     },
+    "openrouter/free": {
+        "input": 0.40,
+        "output": 1.60,
+    },
         "nex-agi/nex-n2.5-mini:free": {
         "input": 0.60,
         "output": 1.20,
