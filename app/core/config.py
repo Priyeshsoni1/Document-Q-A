@@ -19,7 +19,7 @@ class Settings(BaseSettings):
     chunk_size: int = 1000
     chunk_overlap: int = 200
 
-    llm_model: str = "google/gemma-4-31b-it:free"
+    llm_model: str = "openrouter/free"
     embedding_model: str = "text-embedding-3-small"
 
     model_config = SettingsConfigDict(

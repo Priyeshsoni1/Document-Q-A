@@ -224,13 +224,20 @@ if question:
                     timeout=120,
                 )
 
+                
                 if not response.ok:
+                    st.error("The RAG API returned an error.")
 
-                    st.error(
-                        "The RAG API returned an error."
-                    )
+                    st.write("HTTP Status:", response.status_code)
+
+                    try:
+                        error_details = response.json()
+                        st.json(error_details)
+                    except ValueError:
+                        st.code(response.text or "Empty error response")
 
                     st.stop()
+
 
                 result = response.json()
 
